@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <stdexcept>
 
 using namespace std;
 
@@ -9,54 +10,51 @@ struct Date {
     int month;
     int year;
 
-    static const int DAYS_IN_MONTH[];
-    static const int DAYS_IN_YEAR;
+    Date() : day(0), month(0), year(0) {}
 
     bool isValidDate() const {
-        if (year < 0 || month < 1 || month > 12 || day < 1)
+        if (month < 1 || month > 12)
             return false;
-        if (month == 2 && isLeapYear(year)) {
-            return day <= 29;
-        } else {
-            return day <= DAYS_IN_MONTH[month - 1];
+        if (day < 1 || day > 31)
+            return false;
+        if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30)
+            return false;
+        if (month == 2) {
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+                if (day > 29)
+                    return false;
+            }
+            else {
+                if (day > 28)
+                    return false;
+            }
         }
-    }
-
-    bool isLeapYear(int year) const {
-        return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        return true;
     }
 
     void newDate(int d, int m, int y) {
-        if (m >= 1 && m <= 12 && d >= 1 && d <= DAYS_IN_MONTH[m - 1] && (m != 2 || (m == 2 && isLeapYear(y)))) {
-            day = d;
-            month = m;
-            year = y;
-        } else {
-            // Invalid date, do not set
-            cout << "Некорректная дата: " << d << "-" << m << "-" << y << endl;
+        day = d;
+        month = m;
+        year = y;
+        if (!isValidDate()) {
+            throw invalid_argument("Invalid date!");
         }
     }
 
     int getDayOfWeek() const {
-        int y = year;
-        int m = month;
-        if (m < 3) {
-            m += 12;
-            y--;
-        }
-        int h = (day + (13 * (m + 1)) / 5 + y + y / 4 - y / 100 + y / 400) % 7;
-        return h;
+        return (day + month + year) % 7;
     }
 
     int calculateDifference(const Date& date) const {
-        int days1 = day + month * DAYS_IN_MONTH[month - 1] + year * DAYS_IN_YEAR;
-        int days2 = date.day + date.month * DAYS_IN_MONTH[date.month - 1] + date.year * DAYS_IN_YEAR;
+        int days1 = year * 360 + month * 30 + day;
+        int days2 = date.year * 360 + date.month * 30 + date.day;
         return abs(days2 - days1);
     }
 
     void printDate() const {
-        const char* months[] = {"Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"};
-        cout << months[month - 1] << " " << day << ", " << year;
+        const char* months[] = { "January", "February", "March", "April", "May", "June", "July",
+                                "August", "September", "October", "November", "December" };
+        cout << months[month - 1] << " " << day << ", " << year << endl;
     }
 
     bool operator<(const Date& other) const {
@@ -68,23 +66,33 @@ struct Date {
     }
 };
 
-const int Date::DAYS_IN_MONTH[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-const int Date::DAYS_IN_YEAR = 365;
+void sortDates(vector<Date>& dates) {
+    sort(dates.begin(), dates.end());
+}
 
 int main() {
-    vector<Date> dates = {{1, 1, 2023}, {15, 3, 2022}, {10, 6, 2024}};
+    vector<Date> dates;
 
-    sort(dates.begin(), dates.end());
+    try {
+        Date d1, d2, d3;
+        d1.newDate(12, 3, 2023);
+        d2.newDate(5, 10, 2022);
+        d3.newDate(28, 12, 2024);
 
+        dates.push_back(d1);
+        dates.push_back(d2);
+        dates.push_back(d3);
+    }
+    catch (const invalid_argument& e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
+    }
+
+    sortDates(dates);
+
+    cout << "Sorted Dates:" << endl;
     for (const auto& date : dates) {
-        if (date.isValidDate()) {
-            date.printDate();
-            cout << endl;
-        } else {
-            cout << "Некорректная дата: ";
-            date.printDate();
-            cout << endl;
-        }
+        date.printDate();
     }
 
     return 0;
